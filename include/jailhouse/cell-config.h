@@ -67,7 +67,7 @@
 #define CELL_FLAGS_VIRTUAL_CONSOLE_PERMITTED(flags) \
 	!!((flags) & JAILHOUSE_CELL_VIRTUAL_CONSOLE_PERMITTED)
 
-#define JAILHOUSE_CELL_DESC_SIGNATURE	"JHCELL"
+#define JAILHOUSE_CELL_DESC_SIGNATURE	"RVMCEL"
 
 /**
  * The jailhouse cell configuration.
@@ -200,7 +200,7 @@ struct jailhouse_iommu {
 	__u32 amd_features;
 } __attribute__((packed));
 
-#define JAILHOUSE_SYSTEM_SIGNATURE	"JHSYST"
+#define JAILHOUSE_SYSTEM_SIGNATURE	"RVMSYS"
 
 /*
  * The flag JAILHOUSE_SYS_VIRTUAL_DEBUG_CONSOLE allows the root cell to read

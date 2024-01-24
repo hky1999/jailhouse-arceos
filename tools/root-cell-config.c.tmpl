@@ -56,7 +56,7 @@ struct {
 	.header = {
 		.signature = JAILHOUSE_SYSTEM_SIGNATURE,
 		.revision = JAILHOUSE_CONFIG_REVISION,
-		.flags = JAILHOUSE_SYS_VIRTUAL_DEBUG_CONSOLE,
+		.flags = 0,
 		.hypervisor_memory = {
 			.phys_start = ${hex(hvmem[0])},
 			.size = ${hex(hvmem[1])},

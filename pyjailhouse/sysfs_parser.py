@@ -100,19 +100,19 @@ def parse_iomem(pcidevices):
     dmar_regions = []
     for r in regions:
         append_r = True
-        # filter the list for MSI-X pages
-        for d in pcidevices:
-            if d.msix_address >= r.start and d.msix_address <= r.stop:
-                if d.msix_address > r.start:
-                    head_r = MemRegion(r.start, d.msix_address - 1,
-                                       r.typestr, r.comments)
-                    ret.append(head_r)
-                if d.msix_address + d.msix_region_size < r.stop:
-                    tail_r = MemRegion(d.msix_address + d.msix_region_size,
-                                       r.stop, r.typestr, r.comments)
-                    ret.append(tail_r)
-                append_r = False
-                break
+        # # filter the list for MSI-X pages
+        # for d in pcidevices:
+        #     if d.msix_address >= r.start and d.msix_address <= r.stop:
+        #         if d.msix_address > r.start:
+        #             head_r = MemRegion(r.start, d.msix_address - 1,
+        #                                r.typestr, r.comments)
+        #             ret.append(head_r)
+        #         if d.msix_address + d.msix_region_size < r.stop:
+        #             tail_r = MemRegion(d.msix_address + d.msix_region_size,
+        #                                r.stop, r.typestr, r.comments)
+        #             ret.append(tail_r)
+        #         append_r = False
+        #         break
         # filter out the ROMs
         if (r.start >= rom_region.start and r.stop <= rom_region.stop):
             add_rom_region = True
@@ -202,6 +202,7 @@ def parse_dmar_devscope(f):
 # parsing of DMAR ACPI Table
 # see Intel VT-d Spec chapter 8
 def parse_dmar(pcidevices, ioapics, dmar_regions):
+    return [], []
     f = input_open('/sys/firmware/acpi/tables/DMAR', 'rb')
     signature = f.read(4)
     if signature != b'DMAR':
@@ -315,6 +316,7 @@ def parse_dmar(pcidevices, ioapics, dmar_regions):
 
 
 def parse_ivrs(pcidevices, ioapics):
+    return [], []
     def format_bdf(bdf):
         bus, dev, fun = (bdf >> 8) & 0xff, (bdf >> 3) & 0x1f, bdf & 0x7
         return '%02x:%02x.%x' % (bus, dev, fun)
@@ -889,12 +891,12 @@ class IOMemRegionTree:
                 regions.extend(tree.regions_split_by_kernel())
                 continue
 
-            # blacklisted on all levels
-            if (
-                (s.find('PCI MMCONFIG') >= 0) or
-                (s.find('APIC') >= 0)  # covers both APIC and IOAPIC
-            ):
-                continue
+            # # blacklisted on all levels
+            # if (
+            #     (s.find('PCI MMCONFIG') >= 0) or
+            #     (s.find('APIC') >= 0)  # covers both APIC and IOAPIC
+            # ):
+            #     continue
 
             # generally blacklisted, unless we find an HPET behind it
             if (s.lower() == 'reserved'):

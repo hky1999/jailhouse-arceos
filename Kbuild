@@ -41,7 +41,9 @@ GEN_VERSION_H := $(obj)/hypervisor/include/generated/version.h
 $(GEN_VERSION_H): $(src)/Makefile FORCE
 	$(call filechk,version)
 
-subdir-y := driver hypervisor configs inmates tools
+subdir-y := configs tools
+
+obj-m := driver/
 
 subdir-ccflags-y := -Werror
 

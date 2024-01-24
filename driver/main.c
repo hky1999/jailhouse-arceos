@@ -58,15 +58,22 @@
 #error 64-bit kernel required!
 #endif
 
+#ifndef MSR_IA32_FEAT_CTL
+#define MSR_IA32_FEAT_CTL MSR_IA32_FEATURE_CONTROL
+#endif
+#ifndef FEAT_CTL_VMX_ENABLED_OUTSIDE_SMX
+#define FEAT_CTL_VMX_ENABLED_OUTSIDE_SMX FEATURE_CONTROL_VMXON_ENABLED_OUTSIDE_SMX
+#endif
+
 #if JAILHOUSE_CELL_ID_NAMELEN != JAILHOUSE_CELL_NAME_MAXLEN
 # warning JAILHOUSE_CELL_ID_NAMELEN and JAILHOUSE_CELL_NAME_MAXLEN out of sync!
 #endif
 
 #ifdef CONFIG_X86
-#define JAILHOUSE_AMD_FW_NAME	"jailhouse-amd.bin"
-#define JAILHOUSE_INTEL_FW_NAME	"jailhouse-intel.bin"
+#define JAILHOUSE_AMD_FW_NAME	"rvm-amd.bin"
+#define JAILHOUSE_INTEL_FW_NAME	"rvm-intel.bin"
 #else
-#define JAILHOUSE_FW_NAME	"jailhouse.bin"
+#define JAILHOUSE_FW_NAME	"rvm.bin"
 #endif
 
 MODULE_DESCRIPTION("Management driver for Jailhouse partitioning hypervisor");
@@ -100,7 +107,11 @@ static struct resource *hypervisor_mem_res;
 
 static typeof(ioremap_page_range) *ioremap_page_range_sym;
 #ifdef CONFIG_X86
-static typeof(lapic_timer_frequency) *lapic_timer_frequency_sym;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,3,0)
+#define lapic_timer_period	lapic_timer_frequency
+#define lapic_timer_period_sym	lapic_timer_frequency_sym
+#endif
+static typeof(lapic_timer_period) *lapic_timer_period_sym;
 #endif
 #ifdef CONFIG_ARM
 static typeof(__boot_cpu_mode) *__boot_cpu_mode_sym;
@@ -402,9 +413,8 @@ static int jailhouse_cmd_enable(struct jailhouse_system __user *arg)
 	if (boot_cpu_has(X86_FEATURE_VMX)) {
 		u64 features;
 
-		rdmsrl(MSR_IA32_FEATURE_CONTROL, features);
-		if ((features &
-		     FEATURE_CONTROL_VMXON_ENABLED_OUTSIDE_SMX) == 0) {
+		rdmsrl(MSR_IA32_FEAT_CTL, features);
+		if ((features & FEAT_CTL_VMX_ENABLED_OUTSIDE_SMX) == 0) {
 			pr_err("jailhouse: VT-x disabled by Firmware/BIOS\n");
 			err = -ENODEV;
 			goto error_put_module;
@@ -550,7 +560,7 @@ static int jailhouse_cmd_enable(struct jailhouse_system __user *arg)
 		config->platform_info.x86.tsc_khz = tsc_khz;
 	if (config->platform_info.x86.apic_khz == 0)
 		config->platform_info.x86.apic_khz =
-			*lapic_timer_frequency_sym / (1000 / HZ);
+			*lapic_timer_period_sym / (1000 / HZ);
 #endif
 
 	err = jailhouse_cell_prepare_root(&config->root_cell);
@@ -695,10 +705,9 @@ static int jailhouse_cmd_disable(void)
 	preempt_enable();
 
 	err = error_code;
-	if (err)
-		goto unlock_out;
-
-	update_last_console();
+	if (err) {
+		pr_warn("jailhouse: Failed to disable hypervisor: %d\n", err);
+	}
 
 	jailhouse_cell_delete_root();
 	jailhouse_enabled = false;
@@ -885,19 +894,20 @@ static int __init jailhouse_init(void)
 {
 	int err;
 
-#ifdef CONFIG_KALLSYMS_ALL
-#define RESOLVE_EXTERNAL_SYMBOL(symbol)				\
+#if defined(CONFIG_KALLSYMS_ALL) && LINUX_VERSION_CODE < KERNEL_VERSION(5,7,0)
+#define __RESOLVE_EXTERNAL_SYMBOL(symbol)			\
 	symbol##_sym = (void *)kallsyms_lookup_name(#symbol);	\
 	if (!symbol##_sym)					\
 		return -EINVAL
 #else
-#define RESOLVE_EXTERNAL_SYMBOL(symbol)				\
+#define __RESOLVE_EXTERNAL_SYMBOL(symbol)			\
 	symbol##_sym = &symbol
 #endif
+#define RESOLVE_EXTERNAL_SYMBOL(symbol...) __RESOLVE_EXTERNAL_SYMBOL(symbol)
 
 	RESOLVE_EXTERNAL_SYMBOL(ioremap_page_range);
 #ifdef CONFIG_X86
-	RESOLVE_EXTERNAL_SYMBOL(lapic_timer_frequency);
+	RESOLVE_EXTERNAL_SYMBOL(lapic_timer_period);
 #endif
 #ifdef CONFIG_ARM
 	RESOLVE_EXTERNAL_SYMBOL(__boot_cpu_mode);

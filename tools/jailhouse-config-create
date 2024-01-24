@@ -239,7 +239,7 @@ if options.generate_collector:
     f.close()
     sys.exit(0)
 
-if ((options.root is '/') and (os.geteuid() is not 0)):
+if options.root == '/' and os.geteuid() != 0:
     print('ERROR: You have to be root to work on "/"!', file=sys.stderr)
     sys.exit(1)
 
@@ -266,7 +266,7 @@ product = [input_readline('/sys/class/dmi/id/sys_vendor',
                           True).rstrip()
            ]
 
-inmatemem = kmg_multiply_str(options.mem_inmates)
+inmatemem = 0 # kmg_multiply_str(options.mem_inmates)
 hvmem = [0, kmg_multiply_str(options.mem_hv)]
 
 (regions, dmar_regions) = sysfs_parser.parse_iomem(pcidevices)
@@ -298,7 +298,9 @@ hvmem[0] = ourmem[0]
 inmatereg = sysfs_parser.MemRegion(ourmem[0] + hvmem[1],
                                    ourmem[0] + hvmem[1] + inmatemem - 1,
                                    'JAILHOUSE Inmate Memory')
-regions.append(inmatereg)
+
+for r in regions:
+    print(r)
 
 cpucount = count_cpus()
 
