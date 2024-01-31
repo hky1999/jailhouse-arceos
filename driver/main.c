@@ -568,7 +568,7 @@ static int jailhouse_cmd_enable(struct jailhouse_system __user *arg)
 		goto error_unmap;
 
 	error_code = 0;
-
+	pr_err("enter arceos!!!\n");
 	preempt_disable();
 
 	header->online_cpus = num_online_cpus();
@@ -579,6 +579,7 @@ static int jailhouse_cmd_enable(struct jailhouse_system __user *arg)
 		cpu_relax();
 
 	preempt_enable();
+	pr_err("out arceos!!!\n");
 
 	if (error_code) {
 		err = error_code;
