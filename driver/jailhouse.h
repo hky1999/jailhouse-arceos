@@ -44,6 +44,10 @@
 
 #define JAILHOUSE_CELL_ID_NAMELEN	31
 
+struct jailhouse_axprocess_up {
+	__u64 cpu_mask;
+};
+
 struct jailhouse_cell_create {
 	__u64 config_address;
 	__u32 config_size;
@@ -78,5 +82,6 @@ struct jailhouse_cell_load {
 #define JAILHOUSE_CELL_LOAD		_IOW(0, 3, struct jailhouse_cell_load)
 #define JAILHOUSE_CELL_START		_IOW(0, 4, struct jailhouse_cell_id)
 #define JAILHOUSE_CELL_DESTROY		_IOW(0, 5, struct jailhouse_cell_id)
+#define JAILHOUSE_AXPROCESS_UP _IOW(0, 6, struct jailhouse_axprocess_up)
 
 #endif /* !_JAILHOUSE_DRIVER_H */

@@ -511,6 +511,42 @@ static int cell_management(int argc, char *argv[])
 	return err;
 }
 
+static int axprocess_up(int argc, char *argv[])
+{
+	struct jailhouse_axprocess_up axprocess_up;	// cpu id 1
+	int err, fd;
+
+	if (argc < 4) {
+        fprintf(stderr, "Missing CPU mask argument\n");
+        return -1;
+    }
+    axprocess_up.cpu_mask = atoi(argv[3]);
+
+	fd = open_dev();
+	err = ioctl(fd, JAILHOUSE_AXPROCESS_UP, &axprocess_up);
+	if (err)
+		perror("JAILHOUSE_AXPROCESS_UP");
+	close(fd);
+	return err;
+}
+
+static int axprocess_management(int argc, char *argv[])
+{
+	int err;
+	printf("axprocess_management argc:%d\n", argc);
+	if (argc < 3)
+		help(argv[0], 1);
+
+	if (strcmp(argv[2], "up") == 0) {
+		err = axprocess_up(argc, argv);
+	}  else {
+		call_extension_script("axprocess", argc, argv);
+		help(argv[0], 1);
+	}
+
+	return err;
+}
+
 static int console(int argc, char *argv[])
 {
 	bool non_block = true;
@@ -557,7 +593,6 @@ int main(int argc, char *argv[])
 
 	if (argc < 2)
 		help(argv[0], 1);
-
 	if (strcmp(argv[1], "enable") == 0) {
 		err = enable(argc, argv);
 	} else if (strcmp(argv[1], "disable") == 0) {
@@ -568,6 +603,8 @@ int main(int argc, char *argv[])
 		close(fd);
 	} else if (strcmp(argv[1], "cell") == 0) {
 		err = cell_management(argc, argv);
+	} else if (strcmp(argv[1], "axprocess") == 0) {
+		err = axprocess_management(argc, argv);
 	} else if (strcmp(argv[1], "console") == 0) {
 		err = console(argc, argv);
 	} else if (strcmp(argv[1], "config") == 0 ||
