@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "typeinfo": "c",
+        "ioctl.h": "c",
+        "pci.h": "c",
+        "main.h": "c",
+        "hypercall.h": "c",
+        "version.h": "c"
+    }
+}

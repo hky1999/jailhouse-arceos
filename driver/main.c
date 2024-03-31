@@ -45,6 +45,7 @@
 #endif
 
 #include "cell.h"
+#include "axprocess.h"
 #include "jailhouse.h"
 #include "main.h"
 #include "pci.h"
@@ -239,6 +240,7 @@ static void enter_hypervisor(void *info)
 	int err;
 
 	entry = header->entry + (unsigned long) hypervisor_mem;
+	pr_err("cpu: %d entry: %p\n", cpu, entry);
 
 	if (cpu < header->max_cpus)
 		/* either returns 0 or the same error code across all CPUs */
@@ -451,6 +453,7 @@ static int jailhouse_cmd_enable(struct jailhouse_system __user *arg)
 	 * redone since the root-cell config might have changed. */
 	jailhouse_firmware_free();
 
+	pr_err("this is hv_mem phs_start:%llx virt: %llx size: %llx\n", hv_mem->phys_start, hv_mem->virt_start, hv_mem->size);
 	hypervisor_mem_res = request_mem_region(hv_mem->phys_start,
 						hv_mem->size,
 						"Jailhouse hypervisor");
@@ -510,6 +513,7 @@ static int jailhouse_cmd_enable(struct jailhouse_system __user *arg)
 	 * region. */
 	config = (struct jailhouse_system *)
 		(hypervisor_mem + hv_core_and_percpu_size);
+	pr_err("config: 0x%p\n", (void*)config);
 	if (copy_from_user(config, arg, config_size)) {
 		err = -EFAULT;
 		goto error_unmap;
@@ -748,6 +752,10 @@ static long jailhouse_ioctl(struct file *file, unsigned int ioctl,
 		break;
 	case JAILHOUSE_CELL_DESTROY:
 		err = jailhouse_cmd_cell_destroy((const char __user *)arg);
+		break;
+	case JAILHOUSE_AXPROCESS_UP:
+		err = jailhouse_cmd_axprocess_up(
+			(struct jailhouse_axprocess_up __user *)arg);
 		break;
 	default:
 		err = -EINVAL;

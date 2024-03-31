@@ -1,5 +1,5 @@
 # Generate system configuration
-sudo python3 ./tools/jailhouse-config-create --mem-hv 512M ./configs/x86/qemu-ubuntu.c
+sudo python3 ./tools/jailhouse-config-create --mem-hv 256M ./configs/x86/qemu-ubuntu.c
 sudo chown $(whoami) ./configs/x86/qemu-ubuntu.c
 echo "Created config file at './configs/x86/qemu-ubuntu.c'"
 
