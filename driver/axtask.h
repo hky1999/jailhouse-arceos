@@ -7,6 +7,6 @@
 
 #include "jailhouse.h"
 
-int jailhouse_cmd_axprocess_up(struct jailhouse_axprocess_up __user *arg);
+int jailhouse_cmd_axtask_up(struct jailhouse_axtask_up __user *arg);
 
 #endif /* !_JAILHOUSE_DRIVER_MAIN_H */

@@ -53,6 +53,7 @@
 #define JAILHOUSE_CALL_NUM	"a" (num)
 #define JAILHOUSE_CALL_ARG1	"D" (arg1)
 #define JAILHOUSE_CALL_ARG2	"S" (arg2)
+#define JAILHOUSE_CALL_ARG3	"d" (arg3)
 
 /* CPU statistics */
 #define JAILHOUSE_CPU_STAT_VMEXITS_PIO		JAILHOUSE_GENERIC_CPU_STATS
@@ -163,6 +164,28 @@ static inline __u32 jailhouse_call_arg2(__u32 num, unsigned long arg1,
 		: JAILHOUSE_CALL_RESULT
 		: JAILHOUSE_USE_VMCALL,
 		  JAILHOUSE_CALL_NUM, JAILHOUSE_CALL_ARG1, JAILHOUSE_CALL_ARG2
+		: "memory");
+	return result;
+}
+
+/**
+ * Invoke a hypervisor with three arguments.
+ * @param num		Hypercall number.
+ * @param arg1		First argument.
+ * @param arg2		Second argument.
+ * @param arg3		Third argument.
+ *
+ * @return Result of the hypercall, semantic depends on the invoked service.
+ */
+static inline __u32 jailhouse_call_arg3(__u32 num, unsigned long arg1,
+					unsigned long arg2, unsigned long arg3)
+{
+	__u32 result;
+
+	asm volatile(JAILHOUSE_CALL_CODE
+		: JAILHOUSE_CALL_RESULT
+		: JAILHOUSE_USE_VMCALL,
+		  JAILHOUSE_CALL_NUM, JAILHOUSE_CALL_ARG1, JAILHOUSE_CALL_ARG2, JAILHOUSE_CALL_ARG3
 		: "memory");
 	return result;
 }

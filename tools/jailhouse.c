@@ -511,36 +511,42 @@ static int cell_management(int argc, char *argv[])
 	return err;
 }
 
-static int axprocess_up(int argc, char *argv[])
+static int axtask_up(int argc, char *argv[])
 {
-	struct jailhouse_axprocess_up axprocess_up;	// cpu id 1
+	struct jailhouse_axtask_up axtask_up;	// cpu id 1
 	int err, fd;
+	size_t size;
 
-	if (argc < 4) {
-        fprintf(stderr, "Missing CPU mask argument\n");
+	if (argc < 6) {
+        fprintf(stderr, "Please use the correct format: PATH_TO_JAILHOUSE axtask up CPUMASK TYPE PATH_TO_IMAGE\n");
         return -1;
     }
-    axprocess_up.cpu_mask = atoi(argv[3]);
-
+    axtask_up.cpu_mask = atoi(argv[3]);
+	axtask_up.type = atoi(argv[4]);
+	axtask_up.addr = (unsigned long)read_file(argv[5], &size);
+	axtask_up.size = size;
+	printf("axtask cpumask:%lld type:%d, addr:%llx\n, size: %lld", axtask_up.cpu_mask, axtask_up.type, axtask_up.addr, axtask_up.size);
+	
 	fd = open_dev();
-	err = ioctl(fd, JAILHOUSE_AXPROCESS_UP, &axprocess_up);
+	err = ioctl(fd, JAILHOUSE_AXTASK_UP, &axtask_up);
 	if (err)
-		perror("JAILHOUSE_AXPROCESS_UP");
+		perror("JAILHOUSE_AXTASK_UP");
 	close(fd);
+	free((void *)(unsigned long)axtask_up.addr);
 	return err;
 }
 
-static int axprocess_management(int argc, char *argv[])
+static int axtask_management(int argc, char *argv[])
 {
 	int err;
-	printf("axprocess_management argc:%d\n", argc);
+	printf("axtask_management argc:%d\n", argc);
 	if (argc < 3)
 		help(argv[0], 1);
 
 	if (strcmp(argv[2], "up") == 0) {
-		err = axprocess_up(argc, argv);
+		err = axtask_up(argc, argv);
 	}  else {
-		call_extension_script("axprocess", argc, argv);
+		call_extension_script("axtask", argc, argv);
 		help(argv[0], 1);
 	}
 
@@ -603,8 +609,8 @@ int main(int argc, char *argv[])
 		close(fd);
 	} else if (strcmp(argv[1], "cell") == 0) {
 		err = cell_management(argc, argv);
-	} else if (strcmp(argv[1], "axprocess") == 0) {
-		err = axprocess_management(argc, argv);
+	} else if (strcmp(argv[1], "axtask") == 0) {
+		err = axtask_management(argc, argv);
 	} else if (strcmp(argv[1], "console") == 0) {
 		err = console(argc, argv);
 	} else if (strcmp(argv[1], "config") == 0 ||

@@ -45,7 +45,7 @@
 #endif
 
 #include "cell.h"
-#include "axprocess.h"
+#include "axtask.h"
 #include "jailhouse.h"
 #include "main.h"
 #include "pci.h"
@@ -753,9 +753,9 @@ static long jailhouse_ioctl(struct file *file, unsigned int ioctl,
 	case JAILHOUSE_CELL_DESTROY:
 		err = jailhouse_cmd_cell_destroy((const char __user *)arg);
 		break;
-	case JAILHOUSE_AXPROCESS_UP:
-		err = jailhouse_cmd_axprocess_up(
-			(struct jailhouse_axprocess_up __user *)arg);
+	case JAILHOUSE_AXTASK_UP:
+		err = jailhouse_cmd_axtask_up(
+			(struct jailhouse_axtask_up __user *)arg);
 		break;
 	default:
 		err = -EINVAL;
