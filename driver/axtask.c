@@ -20,14 +20,17 @@ int jailhouse_cmd_axtask_up(struct jailhouse_axtask_up __user *arg)
 {
 	unsigned int cpu;
 	unsigned long phys_addr;
+	unsigned long size = PAGE_SIZE;
 	struct jailhouse_axtask_up up_config;
     int cpu_mask; 
 	int err = 0;
 	unsigned int cpu_id;
 	int type;
 	void* addr;
+	void* size_addr;
+	void* content_addr;
 	void __user *user_addr;
-
+	int i;
 
 	/* Off-line each CPU assigned to the axtask and remove it from the
 	 * root cell's set. */
@@ -49,12 +52,25 @@ int jailhouse_cmd_axtask_up(struct jailhouse_axtask_up __user *arg)
         }
     }
 	type = up_config.type;
-	user_addr = (void __user *)(unsigned long)up_config.addr;
-	addr = kmalloc(up_config.size, GFP_USER | __GFP_NOWARN);
+	for(i = 0; i < JAILHOUSE_FILE_MAXNUM; ++i) {
+		size += (up_config.size[i] + PAGE_SIZE - 1) & PAGE_MASK;
+	}
+	pr_err("size: %lx\n", size);
 
-	if (copy_from_user(addr, user_addr, up_config.size))
-		return -EFAULT;
-	
+	addr = kmalloc(size, GFP_USER | __GFP_NOWARN);
+	size_addr = addr;
+	*(unsigned long *)size_addr = size;
+	size_addr += sizeof(unsigned long);
+	content_addr = addr + PAGE_SIZE;
+	for(i = 0; i < JAILHOUSE_FILE_MAXNUM; ++i) {
+		*(unsigned long *)size_addr = (up_config.size[i] + PAGE_SIZE - 1) & PAGE_MASK;
+		size_addr += sizeof(unsigned long);
+		user_addr = (void __user *)up_config.addr[i];
+		if (copy_from_user(content_addr, user_addr, up_config.size[i]))
+			return -EFAULT;
+		content_addr += (up_config.size[i] + PAGE_SIZE - 1) & PAGE_MASK;
+	}
+
 	phys_addr = __pa(addr);
 	pr_err("Virtual address: %px, Physical address: %lx\n", addr, phys_addr);
 	pr_err("[jailhouse_cmd_axtask_up] current cpu:%d cpu_mask:%d type:%d phys_addr:%lx\n", cpu_id, cpu_mask, type, phys_addr);

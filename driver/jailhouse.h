@@ -44,11 +44,12 @@
 
 #define JAILHOUSE_CELL_ID_NAMELEN	31
 #define JAILHOUSE_PATH_MAXLEN 63
+#define JAILHOUSE_FILE_MAXNUM	8
 
 struct jailhouse_axtask_up {
 	__u64 cpu_mask;
-	__u64 addr;
-	__u64 size;
+	__u64 addr[JAILHOUSE_FILE_MAXNUM];
+	__u64 size[JAILHOUSE_FILE_MAXNUM];
 	__u32 type;
 };
 

@@ -523,16 +523,30 @@ static int axtask_up(int argc, char *argv[])
     }
     axtask_up.cpu_mask = atoi(argv[3]);
 	axtask_up.type = atoi(argv[4]);
-	axtask_up.addr = (unsigned long)read_file(argv[5], &size);
-	axtask_up.size = size;
-	printf("axtask cpumask:%lld type:%d, addr:%llx\n, size: %lld", axtask_up.cpu_mask, axtask_up.type, axtask_up.addr, axtask_up.size);
+	printf("axtask cpumask:%lld type:%d \n", axtask_up.cpu_mask, axtask_up.type);
+	
+	for(int i = 5; i < argc; ++i) {
+		axtask_up.addr[i-5] = (unsigned long)read_file(argv[i], &size);
+		axtask_up.size[i-5] = size;
+		printf(" addr%d:%llx, size%d: %lld ", i-5, axtask_up.addr[i-5], i-5, axtask_up.size[i-5]);
+	}
+	for(int i = argc - 5; i < JAILHOUSE_FILE_MAXNUM; ++i) {
+		axtask_up.addr[i] = 0;
+		axtask_up.size[i] = 0;
+		printf(" addr%d:%llx, size%d: %lld ", i, axtask_up.addr[i], i, axtask_up.size[i]);
+	}
+	printf("\n");
+	
 	
 	fd = open_dev();
 	err = ioctl(fd, JAILHOUSE_AXTASK_UP, &axtask_up);
 	if (err)
 		perror("JAILHOUSE_AXTASK_UP");
 	close(fd);
-	free((void *)(unsigned long)axtask_up.addr);
+	for(int i = 5; i < argc; ++i) {
+		free((void *)(unsigned long)axtask_up.addr[i]);
+	}
+	
 	return err;
 }
 
