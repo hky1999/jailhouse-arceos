@@ -59,13 +59,18 @@ struct jailhouse_axtask_up {
  * 	This is just a ugly lazy implementation.
 */ 
 struct jailhouse_axvm_create {
+	// CPU MASK.
 	__u64 cpu_mask;
-	// user addr for each image.
-	__u64 addr[JAILHOUSE_FILE_MAXNUM];
-	// size for each image.
-	__u64 size[JAILHOUSE_FILE_MAXNUM];
-	// Reserved.
+	// VM_TYPE.
 	__u32 type;
+	// name_addr for each image.
+	__u64 name_addr[JAILHOUSE_FILE_MAXNUM];
+	// name_size for each image.
+	__u64 name_size[JAILHOUSE_FILE_MAXNUM];
+	// user addr for each image.
+	__u64 img_addr[JAILHOUSE_FILE_MAXNUM];
+	// size for each image.
+	__u64 img_size[JAILHOUSE_FILE_MAXNUM];
 };
 
 struct jailhouse_cell_create {

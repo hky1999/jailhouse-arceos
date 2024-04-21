@@ -9,10 +9,9 @@
 #include "jailhouse.h"
 
 /** The struct used for parameter passing between the kernel module and ArceOS hypervisor.
- *  See arceos/modules/axvm/src/hvc.rs
+ * This structure should have the same memory layout as the `AxVMCreateArg` structure in ArceOS. 
+ * See arceos/modules/axvm/src/hvc.rs
  */
-
-
 struct arceos_axvm_create_arg {
     // VM ID, set by ArceOS hypervisor.
 	__u64 vm_id;
@@ -22,10 +21,6 @@ struct arceos_axvm_create_arg {
 	__u64 cpu_mask;
 	// VM entry point.
 	__u64 vm_entry_point;
-	// Size of memory.
-	__u64 ram_size;
-	// Target physical address of memory.
-    __u64 ram_base_gpa;
 
 	// BIOS image loaded target guest physical address.
     __u64 bios_load_gpa;
