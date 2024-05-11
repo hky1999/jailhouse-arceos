@@ -10,8 +10,8 @@ echo "Created config file at './configs/x86/qemu-arceos.c'"
 
 # Update grub config
 # cmdline=$(echo $cmdline | sed 's/\\/\\\\/g')
-cmdline='memmap=0x100000000\\\\\\$0x100000000'
-sudo sed -i "s/GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=$cmdline/" /etc/default/grub
+cmdline='memmap=0x100000000\\\\\\$0x100000000 console=ttyS1'
+sudo sed -i "s/GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"$cmdline\"/" /etc/default/grub
 echo "Appended kernel cmdline: $cmdline, see '/etc/default/grub'"
 
-echo "You should reboot if it's your first time to update it..."
+echo "You should run update-grub and reboot if it's your first time to update it..."
