@@ -118,9 +118,10 @@ def parse_iomem(pcidevices):
             add_rom_region = True
             append_r = False
         # filter out and save DMAR regions
+        # Todo: we just map 'dmar' for host Linux.
         if r.typestr.find('dmar') >= 0:
             dmar_regions.append(r)
-            append_r = False
+            # append_r = False
         if append_r:
             ret.append(r)
 
@@ -748,7 +749,11 @@ class MemRegion:
             self.typestr == 'Kernel' or
             self.typestr == 'RAM buffer' or
             self.typestr == 'ACPI DMAR RMRR' or
-            self.typestr == 'ACPI IVRS'
+            self.typestr == 'ACPI IVRS' or
+            # Just mark Reserved memory as `JAILHOUSE_MEM_EXECUTE`
+            # Do not know somehow Linux will execute codes on Reserved Memory region,
+            # which will caused an unhandled EPT violation with `executed` flag.
+            self.typestr == 'Reserved'
         ):
             s = 'JAILHOUSE_MEM_READ | JAILHOUSE_MEM_WRITE |\n'
             s += p + '\t\tJAILHOUSE_MEM_EXECUTE | JAILHOUSE_MEM_DMA'
@@ -898,15 +903,18 @@ class IOMemRegionTree:
             # ):
             #     continue
 
-            # generally blacklisted, unless we find an HPET behind it
-            if (s.lower() == 'reserved'):
-                regions.extend(IOMemRegionTree.find_hpet_regions(tree))
-                continue
+            # We do not blackedlisted these reserved regions.
+            # On the contrary, we map them for Linux for these reasons:
+            # * IOAPIC, HPet or regions reserved for Graphics may hide behind it.
+            # * Linux will operate it for unknown reason.
+            # if (s.lower() == 'reserved'):
+            #     regions.append(r)
+            #     continue
 
             # if the tree continues recurse further down ...
-            if (len(tree.children) > 0):
-                regions.extend(IOMemRegionTree.parse_iomem_tree(tree))
-                continue
+            # if (len(tree.children) > 0):
+            #     regions.extend(IOMemRegionTree.parse_iomem_tree(tree))
+            #     continue
 
             # add all remaining leaves
             regions.append(r)
