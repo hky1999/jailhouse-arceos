@@ -90,13 +90,16 @@ int arceos_cmd_axvm_create(struct jailhouse_axvm_create __user *arg)
 
 	unsigned long arg_phys_addr;
 	struct arceos_axvm_create_arg* arceos_hvc_axvm_create;
+	void *raw_config_file;
 	struct jailhouse_preload_image bios_image;
 	struct jailhouse_preload_image kernel_image;
 	struct jailhouse_preload_image ramdisk_image;
 
 	if (copy_from_user(&vm_cfg, arg, sizeof(vm_cfg)))
 		return -EFAULT;
-	cpu_mask = vm_cfg.cpu_mask;
+
+	vm_id = vm_cfg.id;
+	cpu_mask = vm_cfg.cpu_set;
 	cpu_id = smp_processor_id();
 	
 	/* Off-line each CPU assigned to the axvm and remove it from the
@@ -115,19 +118,26 @@ int arceos_cmd_axvm_create(struct jailhouse_axvm_create __user *arg)
     }
 
 	arceos_hvc_axvm_create = kmalloc(sizeof(struct arceos_axvm_create_arg), GFP_USER | __GFP_NOWARN);
+	raw_config_file = kmalloc(vm_cfg.raw_cfg_file_size, GFP_USER | __GFP_NOWARN);
+	if (copy_from_user(raw_config_file,(const void __user *) vm_cfg.raw_cfg_file_ptr, vm_cfg.raw_cfg_file_size)) {
+		pr_err("Failed to copy raw_config_file\n");
+		return -EFAULT;
+	}
+		
+	arceos_hvc_axvm_create->vm_id = vm_cfg.id;
+	arceos_hvc_axvm_create->raw_cfg_base = __pa(raw_config_file);
+	arceos_hvc_axvm_create->raw_cfg_size = vm_cfg.raw_cfg_file_size;
+	// arceos_hvc_axvm_create->vm_type = vm_cfg.type;
+	// arceos_hvc_axvm_create->cpu_mask = cpu_mask;
 
-	arceos_hvc_axvm_create->vm_id = 0;
-	arceos_hvc_axvm_create->vm_type = vm_cfg.type;
-	arceos_hvc_axvm_create->cpu_mask = cpu_mask;
-
-	// This field should be set by user, but now this is provided by hypervisor.
-	arceos_hvc_axvm_create->vm_entry_point = 0xdeadbeef;
-	// This field should be set by user, but now this is provided by hypervisor.
-	arceos_hvc_axvm_create->bios_load_gpa = 0xdeadbeef;
-	// This field should be set by user, but now this is provided by hypervisor.
-	arceos_hvc_axvm_create->kernel_load_gpa = 0xdeadbeef;
-	// This field should be set by user, but now this is provided by hypervisor.
-	arceos_hvc_axvm_create->ramdisk_load_gpa = 0xdeadbeef;
+	// // This field should be set by user, but now this is provided by hypervisor.
+	// arceos_hvc_axvm_create->vm_entry_point = 0xdeadbeef;
+	// // This field should be set by user, but now this is provided by hypervisor.
+	// arceos_hvc_axvm_create->bios_load_gpa = 0xdeadbeef;
+	// // This field should be set by user, but now this is provided by hypervisor.
+	// arceos_hvc_axvm_create->kernel_load_gpa = 0xdeadbeef;
+	// // This field should be set by user, but now this is provided by hypervisor.
+	// arceos_hvc_axvm_create->ramdisk_load_gpa = 0xdeadbeef;
 
 	// This field should be set by hypervisor.
 	arceos_hvc_axvm_create->bios_load_hpa = 0xdeadbeef;
@@ -148,52 +158,48 @@ int arceos_cmd_axvm_create(struct jailhouse_axvm_create __user *arg)
 	
 	pr_info("[%s] JAILHOUSE_AXVM_CREATE VM %d success\n", 
 		__func__, (int) arceos_hvc_axvm_create->vm_id);
-	pr_info("[%s] VM [%d] vm_entry_point 0x%llx\n", 
-		__func__, (int) arceos_hvc_axvm_create->vm_id, arceos_hvc_axvm_create->vm_entry_point);
-	pr_info("[%s] VM [%d] bios_load_gpa 0x%llx\n", 
-		__func__, (int) arceos_hvc_axvm_create->vm_id, arceos_hvc_axvm_create->bios_load_gpa);
-	pr_info("[%s] VM [%d] kernel_load_gpa 0x%llx\n", 
-		__func__, (int) arceos_hvc_axvm_create->vm_id, arceos_hvc_axvm_create->kernel_load_gpa);
-	pr_info("[%s] VM [%d] ramdisk_load_gpa 0x%llx\n", 
-		__func__, (int) arceos_hvc_axvm_create->vm_id, arceos_hvc_axvm_create->ramdisk_load_gpa);
+	// pr_info("[%s] VM [%d] vm_entry_point 0x%llx\n", 
+	// 	__func__, (int) arceos_hvc_axvm_create->vm_id, arceos_hvc_axvm_create->vm_entry_point);
+	// pr_info("[%s] VM [%d] bios_load_gpa 0x%llx\n", 
+	// 	__func__, (int) arceos_hvc_axvm_create->vm_id, arceos_hvc_axvm_create->bios_load_gpa);
+	// pr_info("[%s] VM [%d] kernel_load_gpa 0x%llx\n", 
+	// 	__func__, (int) arceos_hvc_axvm_create->vm_id, arceos_hvc_axvm_create->kernel_load_gpa);
+	// pr_info("[%s] VM [%d] ramdisk_load_gpa 0x%llx\n", 
+	// 	__func__, (int) arceos_hvc_axvm_create->vm_id, arceos_hvc_axvm_create->ramdisk_load_gpa);
 	vm_id = (int) arceos_hvc_axvm_create->vm_id;
 
 	// Load BIOS image
-	if (vm_cfg.img_addr[0] != 0) {
-		bios_image.source_address = vm_cfg.img_addr[0];
-		bios_image.size = vm_cfg.img_size[0];
-		bios_image.target_address = arceos_hvc_axvm_create->bios_load_hpa;
-		bios_image.padding = 0;
+	bios_image.source_address = vm_cfg.bios_img_ptr;
+	bios_image.size = vm_cfg.bios_img_size;
+	bios_image.target_address = arceos_hvc_axvm_create->bios_load_hpa;
+	bios_image.padding = 0;
 
-		pr_info("[%s] bios_load_hpa: 0x%llx\n", __func__, arceos_hvc_axvm_create->bios_load_hpa);
+	pr_info("[%s] bios_load_hpa: 0x%llx\n", __func__, arceos_hvc_axvm_create->bios_load_hpa);
 
-		err = arceos_axvm_load_image(&bios_image);
-		if (err < 0) {
-			pr_err("[%s] Failed in arceos_axvm_load_image bios_image\n", __func__);
-			goto error_cpu_online;
-		}
+	err = arceos_axvm_load_image(&bios_image);
+	if (err < 0) {
+		pr_err("[%s] Failed in arceos_axvm_load_image bios_image\n", __func__);
+		goto error_cpu_online;
 	}
 	
 	// Load kernel image
-	if (vm_cfg.img_addr[1] != 0) {
-		kernel_image.source_address = vm_cfg.img_addr[1];
-		kernel_image.size = vm_cfg.img_size[1];
-		kernel_image.target_address = arceos_hvc_axvm_create->kernel_load_hpa;
-		kernel_image.padding = 0;
+	kernel_image.source_address = vm_cfg.kernel_img_ptr;
+	kernel_image.size = vm_cfg.kernel_img_size;
+	kernel_image.target_address = arceos_hvc_axvm_create->kernel_load_hpa;
+	kernel_image.padding = 0;
 
-		pr_info("[%s] kernel_load_hpa: 0x%llx\n", __func__, arceos_hvc_axvm_create->kernel_load_hpa);
+	pr_info("[%s] kernel_load_hpa: 0x%llx\n", __func__, arceos_hvc_axvm_create->kernel_load_hpa);
 
-		err = arceos_axvm_load_image(&kernel_image);
-		if (err < 0) {
-			pr_err("[%s] Failed in arceos_axvm_load_image kernel_image\n", __func__);
-			goto error_cpu_online;
-		}
+	err = arceos_axvm_load_image(&kernel_image);
+	if (err < 0) {
+		pr_err("[%s] Failed in arceos_axvm_load_image kernel_image\n", __func__);
+		goto error_cpu_online;
 	}
 
 	// Load ramdisk image
-	if (vm_cfg.img_addr[2] != 0) {
-		ramdisk_image.source_address = vm_cfg.img_addr[2];
-		ramdisk_image.size = vm_cfg.img_size[2];
+	if (vm_cfg.ramdisk_img_size != 0) {
+		ramdisk_image.source_address = vm_cfg.ramdisk_img_ptr;
+		ramdisk_image.size = vm_cfg.ramdisk_img_size;
 		ramdisk_image.target_address = arceos_hvc_axvm_create->ramdisk_load_hpa;
 		ramdisk_image.padding = 0;
 
