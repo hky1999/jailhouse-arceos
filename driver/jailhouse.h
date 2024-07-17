@@ -77,6 +77,14 @@ struct jailhouse_axvm_create {
     __u64 raw_cfg_file_size;
 };
 
+struct jailhouse_axvm_boot {
+	__u64 id;
+};
+
+struct jailhouse_axvm_shutdown {
+	__u64 id;
+};
+
 struct jailhouse_cell_create {
 	__u64 config_address;
 	__u32 config_size;
@@ -113,5 +121,7 @@ struct jailhouse_cell_load {
 #define JAILHOUSE_CELL_DESTROY		_IOW(0, 5, struct jailhouse_cell_id)
 
 #define JAILHOUSE_AXVM_CREATE _IOW(0, 6, struct jailhouse_axvm_create)
+#define JAILHOUSE_AXVM_BOOT _IOW(0, 7, struct jailhouse_axvm_boot)
+#define JAILHOUSE_AXVM_SHUTDOWN _IOW(0, 8, struct jailhouse_axvm_shutdown)
 
 #endif /* !_JAILHOUSE_DRIVER_H */

@@ -212,9 +212,9 @@ int arceos_cmd_axvm_create(struct jailhouse_axvm_create __user *arg)
 		}
 	}
 
-	pr_err("[%s] images load success, booting VM %d\n", __func__, vm_id);
+	// pr_err("[%s] images load success, booting VM %d\n", __func__, vm_id);
 
-	err = jailhouse_call_arg1(ARCEOS_HC_AXVM_BOOT, (unsigned long)vm_id);
+	// err = jailhouse_call_arg1(ARCEOS_HC_AXVM_BOOT, (unsigned long)vm_id);
 
 	kfree(arceos_hvc_axvm_create);
 
@@ -230,5 +230,41 @@ error_cpu_online:
 		}
 	}
 	kfree(arceos_hvc_axvm_create);
+	return err;
+}
+
+/// @brief Boot guest VM.
+/// @param arg : Pointer to the user-provided VM creation information..
+///		`jailhouse_axvm_create` need to be refactored.
+int arceos_cmd_axvm_boot(struct jailhouse_axvm_boot __user *arg) 
+{
+	int err = 0;
+	
+	struct jailhouse_axvm_boot boot_arg;
+
+	if (copy_from_user(&boot_arg, arg, sizeof(boot_arg)))
+		return -EFAULT;
+
+	pr_err("%s Booting VM [%lld]\n", __func__, boot_arg.id);
+
+	err = jailhouse_call_arg1(ARCEOS_HC_AXVM_BOOT, boot_arg.id);
+	return err;
+}
+
+/// @brief Boot guest VM.
+/// @param arg : Pointer to the user-provided VM creation information..
+///		`jailhouse_axvm_create` need to be refactored.
+int arceos_cmd_axvm_shutdown(struct jailhouse_axvm_shutdown __user *arg) 
+{
+	int err = 0;
+	
+	struct jailhouse_axvm_boot shutdown_arg;
+
+	if (copy_from_user(&shutdown_arg, arg, sizeof(shutdown_arg)))
+		return -EFAULT;
+
+	pr_err("%s Shutdown VM [%lld].\n\n unimplement\n", __func__, shutdown_arg.id);
+
+	// err = jailhouse_call_arg1(ARCEOS_HC_AXVM_BOOT, vmid);
 	return err;
 }

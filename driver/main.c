@@ -757,6 +757,12 @@ static long jailhouse_ioctl(struct file *file, unsigned int ioctl,
 		err = arceos_cmd_axvm_create(
 			(struct jailhouse_axvm_create __user *)arg);
 		break;
+	case JAILHOUSE_AXVM_BOOT:
+		err = arceos_cmd_axvm_boot((struct jailhouse_axvm_boot __user *)arg);
+		break;
+	case JAILHOUSE_AXVM_SHUTDOWN:
+		err = arceos_cmd_axvm_shutdown((struct jailhouse_axvm_shutdown __user *)arg);
+		break;
 	default:
 		err = -EINVAL;
 		break;
