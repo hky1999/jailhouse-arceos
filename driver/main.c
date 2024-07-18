@@ -763,6 +763,9 @@ static long jailhouse_ioctl(struct file *file, unsigned int ioctl,
 	case JAILHOUSE_AXVM_SHUTDOWN:
 		err = arceos_cmd_axvm_shutdown((struct jailhouse_axvm_shutdown __user *)arg);
 		break;
+	case JAILHOUSE_AXVM_GET_DISK_IMAGE:
+		err = arceos_cmd_axvm_get_disk_image_path((struct jailhouse_axvm_get_disk_image_path __user *)arg);
+		break;
 	default:
 		err = -EINVAL;
 		break;

@@ -60,19 +60,17 @@ struct jailhouse_axtask_up {
 */ 
 struct jailhouse_axvm_create {
 	__u64 id;
-	// __u64 vm_name_ptr;
-	// __u64 vm_name_len;
-	// __u64 vm_type;
     __u64 cpu_set;
-    // __u64 bios_load_addr;
     __u64 bios_img_ptr;
     __u64 bios_img_size;
-    // __u64 kernel_load_addr;
     __u64 kernel_img_ptr;
     __u64 kernel_img_size;
-    // __u64 ramdisk_load_addr;
     __u64 ramdisk_img_ptr;
     __u64 ramdisk_img_size;
+
+	__u64 disk_image_path_ptr;
+    __u64 disk_image_path_length;
+
     __u64 raw_cfg_file_ptr;
     __u64 raw_cfg_file_size;
 };
@@ -83,6 +81,11 @@ struct jailhouse_axvm_boot {
 
 struct jailhouse_axvm_shutdown {
 	__u64 id;
+};
+
+struct jailhouse_axvm_get_disk_image_path {
+	__u64 id;
+	__u64 disk_image_path_ptr;
 };
 
 struct jailhouse_cell_create {
@@ -123,5 +126,6 @@ struct jailhouse_cell_load {
 #define JAILHOUSE_AXVM_CREATE _IOW(0, 6, struct jailhouse_axvm_create)
 #define JAILHOUSE_AXVM_BOOT _IOW(0, 7, struct jailhouse_axvm_boot)
 #define JAILHOUSE_AXVM_SHUTDOWN _IOW(0, 8, struct jailhouse_axvm_shutdown)
+#define JAILHOUSE_AXVM_GET_DISK_IMAGE _IOR(0, 9, struct jailhouse_axvm_get_disk_image_path)
 
 #endif /* !_JAILHOUSE_DRIVER_H */

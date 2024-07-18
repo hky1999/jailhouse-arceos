@@ -14,8 +14,11 @@
 
 #include <jailhouse/hypercall.h>
 
-static cpumask_t offlined_cpus;
+#define VM_NUM_MAX (16)
+#define VM_DISK_IMAGE_PATH_MAX_LENGTH (64)
 
+static cpumask_t offlined_cpus;
+static char vm_disk_images[VM_NUM_MAX][VM_DISK_IMAGE_PATH_MAX_LENGTH];
 
 /// @brief Load image from user address to target physical address provided by arceos-hv.
 /// @param image : Here we reuse the jailhouse_preload_image structure from Jailhouse.
@@ -127,17 +130,6 @@ int arceos_cmd_axvm_create(struct jailhouse_axvm_create __user *arg)
 	arceos_hvc_axvm_create->vm_id = vm_cfg.id;
 	arceos_hvc_axvm_create->raw_cfg_base = __pa(raw_config_file);
 	arceos_hvc_axvm_create->raw_cfg_size = vm_cfg.raw_cfg_file_size;
-	// arceos_hvc_axvm_create->vm_type = vm_cfg.type;
-	// arceos_hvc_axvm_create->cpu_mask = cpu_mask;
-
-	// // This field should be set by user, but now this is provided by hypervisor.
-	// arceos_hvc_axvm_create->vm_entry_point = 0xdeadbeef;
-	// // This field should be set by user, but now this is provided by hypervisor.
-	// arceos_hvc_axvm_create->bios_load_gpa = 0xdeadbeef;
-	// // This field should be set by user, but now this is provided by hypervisor.
-	// arceos_hvc_axvm_create->kernel_load_gpa = 0xdeadbeef;
-	// // This field should be set by user, but now this is provided by hypervisor.
-	// arceos_hvc_axvm_create->ramdisk_load_gpa = 0xdeadbeef;
 
 	// This field should be set by hypervisor.
 	arceos_hvc_axvm_create->bios_load_hpa = 0xdeadbeef;
@@ -146,10 +138,9 @@ int arceos_cmd_axvm_create(struct jailhouse_axvm_create __user *arg)
 	// This field should be set by hypervisor.
 	arceos_hvc_axvm_create->ramdisk_load_hpa = 0xdeadbeef;
 
+	// Create target guest VM through hypercall.
+
 	arg_phys_addr = __pa(arceos_hvc_axvm_create);
-
-	pr_info("[%s] current cpu:%d cpu_mask:%d\n", __func__, cpu_id, cpu_mask);
-
     err = jailhouse_call_arg1(ARCEOS_HC_AXVM_CREATE_CFG, arg_phys_addr);
 	if (err < 0) {
 		pr_err("[%s] Failed in JAILHOUSE_AXVM_CREATE\n", __func__);
@@ -158,16 +149,26 @@ int arceos_cmd_axvm_create(struct jailhouse_axvm_create __user *arg)
 	
 	pr_info("[%s] JAILHOUSE_AXVM_CREATE VM %d success\n", 
 		__func__, (int) arceos_hvc_axvm_create->vm_id);
-	// pr_info("[%s] VM [%d] vm_entry_point 0x%llx\n", 
-	// 	__func__, (int) arceos_hvc_axvm_create->vm_id, arceos_hvc_axvm_create->vm_entry_point);
-	// pr_info("[%s] VM [%d] bios_load_gpa 0x%llx\n", 
-	// 	__func__, (int) arceos_hvc_axvm_create->vm_id, arceos_hvc_axvm_create->bios_load_gpa);
-	// pr_info("[%s] VM [%d] kernel_load_gpa 0x%llx\n", 
-	// 	__func__, (int) arceos_hvc_axvm_create->vm_id, arceos_hvc_axvm_create->kernel_load_gpa);
-	// pr_info("[%s] VM [%d] ramdisk_load_gpa 0x%llx\n", 
-	// 	__func__, (int) arceos_hvc_axvm_create->vm_id, arceos_hvc_axvm_create->ramdisk_load_gpa);
+
+	// Get VM id generate by hypervisor.
 	vm_id = (int) arceos_hvc_axvm_create->vm_id;
 
+	// Record filename of disk image file here
+	// Check for vm_id confliction.
+	if(vm_disk_images[vm_id][0] != 0) {
+		pr_err("[%s] VM [%d]: disk image file name already existed %s\n", __func__, vm_id, (char *)vm_disk_images[vm_id]);
+		goto error_vm_create;
+	}
+	err = copy_from_user(vm_disk_images[vm_id],
+						(const void __user *)vm_cfg.disk_image_path_ptr, 
+						(unsigned long) vm_cfg.disk_image_path_length);
+	if(err < 0) {
+		pr_err("[%s] VM [%d]: failed to get VM disk image name from user\n", __func__, vm_id);
+		goto error_vm_create;
+	}
+	pr_info("[%s] Store VM[%d] disk image path %s\n", 
+		__func__, vm_id, vm_disk_images[vm_id]);
+		
 	// Load BIOS image
 	bios_image.source_address = vm_cfg.bios_img_ptr;
 	bios_image.size = vm_cfg.bios_img_size;
@@ -179,7 +180,7 @@ int arceos_cmd_axvm_create(struct jailhouse_axvm_create __user *arg)
 	err = arceos_axvm_load_image(&bios_image);
 	if (err < 0) {
 		pr_err("[%s] Failed in arceos_axvm_load_image bios_image\n", __func__);
-		goto error_cpu_online;
+		goto error_vm_create;
 	}
 	
 	// Load kernel image
@@ -193,7 +194,7 @@ int arceos_cmd_axvm_create(struct jailhouse_axvm_create __user *arg)
 	err = arceos_axvm_load_image(&kernel_image);
 	if (err < 0) {
 		pr_err("[%s] Failed in arceos_axvm_load_image kernel_image\n", __func__);
-		goto error_cpu_online;
+		goto error_vm_create;
 	}
 
 	// Load ramdisk image
@@ -208,17 +209,20 @@ int arceos_cmd_axvm_create(struct jailhouse_axvm_create __user *arg)
 		err = arceos_axvm_load_image(&ramdisk_image);
 		if (err < 0) {
 			pr_err("[%s] Failed in arceos_axvm_load_image ramdisk_image\n", __func__);
-			goto error_cpu_online;
+			goto error_vm_create;
 		}
 	}
 
-	// pr_err("[%s] images load success, booting VM %d\n", __func__, vm_id);
+	pr_err("[%s] VM[%d] all images load success, wait for booting\n", __func__, vm_id);
 
 	// err = jailhouse_call_arg1(ARCEOS_HC_AXVM_BOOT, (unsigned long)vm_id);
 
 	kfree(arceos_hvc_axvm_create);
 
 	return err;
+
+error_vm_create:
+	// Todo: delete Vm config through hypercall here.
 
 error_cpu_online:
 	pr_err("create axvm failed err:%d\n", err);
@@ -233,9 +237,34 @@ error_cpu_online:
 	return err;
 }
 
+/// @brief Get disk image file path of guest VM.
+/// @param arg : Pointer to the user-provided VM get disk image path struct.
+int arceos_cmd_axvm_get_disk_image_path(struct jailhouse_axvm_get_disk_image_path __user *arg) 
+{
+	int err = 0;
+	int vm_id;
+
+	struct jailhouse_axvm_get_disk_image_path disk_image_arg;
+
+	if (copy_from_user(&disk_image_arg, arg, sizeof(disk_image_arg)))
+		return -EFAULT;
+
+	vm_id = (int) disk_image_arg.id;
+
+	// Check if disk image path of target VM is valid.
+	if(vm_disk_images[vm_id][0] == 0) {
+		pr_err("[%s] VM [%d]: disk image file path is not set\n", __func__, vm_id);
+		return -ENOENT;
+	}
+
+	if (copy_to_user((char __user *) disk_image_arg.disk_image_path_ptr,(char *)vm_disk_images[vm_id], strlen(vm_disk_images[vm_id])))
+		return -EFAULT;
+
+	return err;
+}
+
 /// @brief Boot guest VM.
-/// @param arg : Pointer to the user-provided VM creation information..
-///		`jailhouse_axvm_create` need to be refactored.
+/// @param arg : Pointer to the user-provided VM boot information.
 int arceos_cmd_axvm_boot(struct jailhouse_axvm_boot __user *arg) 
 {
 	int err = 0;
@@ -251,9 +280,8 @@ int arceos_cmd_axvm_boot(struct jailhouse_axvm_boot __user *arg)
 	return err;
 }
 
-/// @brief Boot guest VM.
-/// @param arg : Pointer to the user-provided VM creation information..
-///		`jailhouse_axvm_create` need to be refactored.
+/// @brief Shutdown guest VM.
+/// @param arg : Pointer to the user-provided VM shutdown information.
 int arceos_cmd_axvm_shutdown(struct jailhouse_axvm_shutdown __user *arg) 
 {
 	int err = 0;

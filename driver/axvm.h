@@ -46,5 +46,6 @@ struct arceos_axvm_create_arg {
 int arceos_cmd_axvm_create(struct jailhouse_axvm_create __user *arg);
 int arceos_cmd_axvm_boot(struct jailhouse_axvm_boot __user *arg);
 int arceos_cmd_axvm_shutdown(struct jailhouse_axvm_shutdown __user *arg);
+int arceos_cmd_axvm_get_disk_image_path(struct jailhouse_axvm_get_disk_image_path __user *arg);
 
 #endif /* !_JAILHOUSE_DRIVER_AXVM_H */
